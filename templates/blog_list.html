@@ -1,0 +1,22 @@
+{% extends "layout.html" %}
+{% block content %}
+    <div class="col-md-8">
+        <h1>Available Blogs</h1>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Name</th> <th># Posts</th> <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for blog in blogs %}
+                <tr>
+                    <td><a href="{{  url_for('blog', blog_id=blog['id']) }}">{{ blog['name'] }}</a></td>
+                    <td>{{ blog['posts']['totalItems'] }}</td>
+                    <td>{{ blog['description'] }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
