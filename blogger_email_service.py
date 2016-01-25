@@ -13,7 +13,7 @@ from gmail import Gmail
 app = flask.Flask(__name__)
 
 
-def blogger_service(f):
+def google_auth(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'credentials' not in flask.session:
@@ -21,24 +21,28 @@ def blogger_service(f):
         credentials = client.OAuth2Credentials.from_json(flask.session['credentials'])
         if credentials.access_token_expired:
             return flask.redirect(flask.url_for('.oauth2callback'))
-        http_auth = credentials.authorize(httplib2.Http())
-        flask.g.blogger_service = discovery.build('blogger', 'v3', http=http_auth)
+        flask.g.http_auth = credentials.authorize(httplib2.Http())
         return f(*args, **kwargs)
 
     return decorated_function
 
+def blogger_service():
+    return discovery.build('blogger', 'v3', http=flask.g.http_auth)
+
+def gmail_service():
+    return discovery.build('gmail', 'v1', http=flask.g.http_auth)
 
 @app.route('/')
-@blogger_service
+@google_auth
 def blog_list():
-    blogs = flask.g.blogger_service.blogs().listByUser(userId='self').execute()
+    blogs = blogger_service().blogs().listByUser(userId='self').execute()
     return flask.render_template('blog_list.html', blogs=blogs['items'])
 
 
 @app.route('/blog/<blog_id>')
-@blogger_service
+@google_auth
 def blog(blog_id):
-    posts = (flask.g.blogger_service.posts().list(
+    posts = (blogger_service().posts().list(
         blogId=blog_id,
         orderBy='published',
         status='live',
@@ -48,9 +52,9 @@ def blog(blog_id):
 
 
 @app.route('/blog/<blog_id>/post/<post_id>/email', methods=['GET', 'POST'])
-@blogger_service
+@google_auth
 def send_email(blog_id, post_id):
-    post = (flask.g.blogger_service.posts().get(
+    post = (blogger_service().posts().get(
         blogId=blog_id,
         postId=post_id
     ).execute())
@@ -63,7 +67,7 @@ def send_email(blog_id, post_id):
                 title=post['title'],
                 content=flask.Markup(post['content']))
         text = 'A new blog post is available at ' + post['url']
-        gmail = Gmail(app.config['GMAIL_USERNAME'], app.config['GMAIL_PASSWORD'])
+        gmail = Gmail(gmail_service())
         gmail.send(addresses, post['title'], text, html)
         return flask.redirect(flask.url_for('.blog', blog_id=blog_id))
 
@@ -84,7 +88,7 @@ def settings():
 def oauth2callback():
     flow = client.flow_from_clientsecrets(
         os.path.join(sys.path[0], 'client_secrets.json'),
-        scope='https://www.googleapis.com/auth/blogger',
+        scope='https://www.googleapis.com/auth/blogger https://www.googleapis.com/auth/gmail.send',
         redirect_uri=flask.url_for('.oauth2callback', _external=True))
     if 'code' not in flask.request.args:
         auth_uri = flow.step1_get_authorize_url()

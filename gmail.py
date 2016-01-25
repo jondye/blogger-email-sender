@@ -1,20 +1,15 @@
-import smtplib
+import base64
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 
 class Gmail(object):
-    def __init__(self, user, password, host=None):
-        self.host = 'smtp.gmail.com:587'
-        if host:
-            self.host = host
-        self.user = user
-        self.password = password
+    def __init__(self, gmail_service):
+        self.service = gmail_service
 
     def send(self, mail_tos, subject, text, html):
         msg = MIMEMultipart('alternative')
         msg['Subject'] = subject
-        msg['From'] = self.user
         msg['To'] = ', '.join(mail_tos)
 
         part1 = MIMEText(text, 'plain')
@@ -23,9 +18,5 @@ class Gmail(object):
         part2 = MIMEText(html, 'html', 'utf-8')
         msg.attach(part2)
 
-        server = smtplib.SMTP(self.host)
-        server.ehlo()
-        server.starttls()
-        server.login(self.user, self.password)
-        server.sendmail(self.user, mail_tos, msg.as_string())
-        server.quit()
+        body = {'raw': base64.b64encode(msg.as_bytes()).decode('utf-8')}
+        self.service.users().messages().send(userId='me', body=body).execute()
