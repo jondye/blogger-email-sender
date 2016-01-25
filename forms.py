@@ -1,7 +1,7 @@
 from flask_wtf import Form
-from wtforms import validators
+from wtforms import validators, FieldList
 from wtforms.fields.html5 import EmailField
 
 
 class EmailForm(Form):
-    email = EmailField('Email Address', [validators.DataRequired(), validators.Email()])
+    addresses = FieldList(EmailField('Email Address', [validators.DataRequired(), validators.Email()]))

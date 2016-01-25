@@ -54,19 +54,30 @@ def send_email(blog_id, post_id):
         blogId=blog_id,
         postId=post_id
     ).execute())
-    form = forms.EmailForm()
-    if form.validate_on_submit():
+    form = forms.Form()
+    addresses = flask.session.get('addresses', [])
 
-        gmail = Gmail(app.config['GMAIL_USERNAME'], app.config['GMAIL_PASSWORD'])
+    if form.validate_on_submit():
         html = flask.render_template(
                 'email.html',
                 title=post['title'],
                 content=flask.Markup(post['content']))
         text = 'A new blog post is available at ' + post['url']
-        gmail.send([form.email.data], post['title'], text, html)
+        gmail = Gmail(app.config['GMAIL_USERNAME'], app.config['GMAIL_PASSWORD'])
+        gmail.send(addresses, post['title'], text, html)
         return flask.redirect(flask.url_for('.blog', blog_id=blog_id))
 
-    return flask.render_template('send_email.html', post=post, form=form)
+    return flask.render_template('send_email.html', post=post, form=form, addresses=addresses)
+
+@app.route('/settings', methods=['GET', 'POST'])
+def settings():
+    form = forms.EmailForm()
+    if form.validate_on_submit():
+        flask.session['addresses'] = form.addresses.data
+        return flask.redirect(flask.url_for('.blog_list'))
+    for email in flask.session.get('addresses', ['']):
+        form.addresses.append_entry(email)
+    return flask.render_template('settings.html', form=form)
 
 
 @app.route('/oauth2callback')
