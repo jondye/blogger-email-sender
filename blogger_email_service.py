@@ -93,7 +93,7 @@ def settings():
 def oauth2callback():
     flow = client.flow_from_clientsecrets(
         os.path.join(sys.path[0], 'client_secrets.json'),
-        scope='https://www.googleapis.com/auth/blogger https://www.googleapis.com/auth/gmail.send',
+        scope='https://www.googleapis.com/auth/blogger.readonly https://www.googleapis.com/auth/gmail.send',
         redirect_uri=flask.url_for('.oauth2callback', _external=True))
     if 'code' not in flask.request.args:
         auth_uri = flow.step1_get_authorize_url()
