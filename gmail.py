@@ -18,5 +18,5 @@ class Gmail(object):
         part2 = MIMEText(html, 'html', 'utf-8')
         msg.attach(part2)
 
-        body = {'raw': base64.b64encode(msg.as_bytes()).decode('utf-8')}
+        body = {'raw': base64.urlsafe_b64encode(bytes(msg)).decode()}
         self.service.users().messages().send(userId='me', body=body).execute()
