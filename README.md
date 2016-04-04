@@ -6,6 +6,4 @@ You will need to create a client_secrets.json file containing your google api cr
 
 You will need to create a config.py file containing the settings for the application, e.g.
 
-    GMAIL_USERNAME = 'sender@example.com'
-    GMAIL_PASSWORD = 'opensesame'
     SECRET_KEY = '01234567-89ab-cdef-0123-4567890abcde'
