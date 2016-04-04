@@ -26,11 +26,14 @@ def google_auth(f):
 
     return decorated_function
 
+
 def blogger_service():
     return discovery.build('blogger', 'v3', http=flask.g.http_auth)
 
+
 def gmail_service():
     return discovery.build('gmail', 'v1', http=flask.g.http_auth)
+
 
 @app.route('/')
 @google_auth
@@ -63,15 +66,16 @@ def send_email(blog_id, post_id):
 
     if form.validate_on_submit():
         html = flask.render_template(
-                'email.html',
-                title=post['title'],
-                content=flask.Markup(post['content']))
+            'email.html',
+            title=post['title'],
+            content=flask.Markup(post['content']))
         text = 'A new blog post is available at ' + post['url']
         gmail = Gmail(gmail_service())
         gmail.send(addresses, post['title'], text, html)
         return flask.redirect(flask.url_for('.blog', blog_id=blog_id))
 
     return flask.render_template('send_email.html', post=post, form=form, addresses=addresses)
+
 
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
