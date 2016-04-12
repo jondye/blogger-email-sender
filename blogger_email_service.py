@@ -88,7 +88,7 @@ def send_email(blog_id, post_id):
         text = 'A new blog post is available at ' + post['url']
         gmail = Gmail(gmail_service())
         gmail.send(addresses, post['title'], text, html)
-        flask.flash("Email sent - {title}".format(**post), "success")
+        flask.flash(u"Email sent - {title}".format(**post), "success")
         return flask.redirect(flask.url_for('.blog', blog_id=blog_id))
 
     return flask.render_template('send_email.html', post=post, form=form, addresses=addresses)
@@ -118,7 +118,7 @@ def blog_settings(blog_id):
         for email in new_emails:
             db.session.add(Recipient(blog_id, email))
         db.session.commit()
-        flask.flash("Saved settings for {name}".format(**blog), "success")
+        flask.flash(u"Saved settings for {name}".format(**blog), "success")
         return flask.redirect(flask.url_for('.blog_list'))
 
     for recipient in recipients:
