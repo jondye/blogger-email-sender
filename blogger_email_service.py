@@ -3,6 +3,7 @@ import sys
 from functools import wraps
 
 import flask
+from flask_sqlalchemy import SQLAlchemy
 import httplib2
 from apiclient import discovery
 from oauth2client import client
@@ -12,6 +13,19 @@ from gmail import Gmail
 
 app = flask.Flask(__name__)
 app.config.from_object('config')
+db = SQLAlchemy(app)
+
+
+class Recipient(db.Model):
+    blog_id = db.Column(db.String(30), primary_key=True)
+    email = db.Column(db.String(120), primary_key=True)
+
+    def __init__(self, blog, email):
+        self.blog_id = blog
+        self.email = email
+
+    def __repr__(self):
+        return '<Recipient %r>' % self.email
 
 
 def google_auth(f):
@@ -63,7 +77,8 @@ def send_email(blog_id, post_id):
         postId=post_id
     ).execute())
     form = forms.Form()
-    addresses = flask.session.get('addresses', [])
+    recipients = Recipient.query.filter_by(blog_id=blog_id).all()
+    addresses = [r.email for r in recipients]
 
     if form.validate_on_submit():
         html = flask.render_template(
@@ -79,14 +94,36 @@ def send_email(blog_id, post_id):
 
 
 @app.route('/settings', methods=['GET', 'POST'])
+@google_auth
 def settings():
+    blogs = blogger_service().blogs().listByUser(userId='self').execute()
+    return flask.render_template('settings.html', blogs=blogs['items'])
+
+
+@app.route('/settings/<blog_id>', methods=['GET', 'POST'])
+@google_auth
+def blog_settings(blog_id):
     form = forms.EmailForm()
+    blog = blogger_service().blogs().get(blogId=blog_id).execute()
+    recipients = Recipient.query.filter_by(blog_id=blog['id']).all()
+
     if form.validate_on_submit():
-        flask.session['addresses'] = form.addresses.data
+        new_emails = form.addresses.data[:]
+        for recipient in recipients:
+            if recipient.email in new_emails:
+                new_emails.remove(recipient.email)
+            else:
+                db.session.delete(recipient)
+        for email in new_emails:
+            db.session.add(Recipient(blog_id, email))
+        db.session.commit()
         return flask.redirect(flask.url_for('.blog_list'))
-    for email in flask.session.get('addresses', ['']):
-        form.addresses.append_entry(email)
-    return flask.render_template('settings.html', form=form)
+
+    for recipient in recipients:
+        form.addresses.append_entry(recipient.email)
+    if not recipients:
+        form.addresses.append_entry("")
+    return flask.render_template('blog_settings.html', form=form, blog_name=blog['name'])
 
 
 @app.route('/oauth2callback')
