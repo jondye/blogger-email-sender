@@ -11,6 +11,7 @@ import forms
 from gmail import Gmail
 
 app = flask.Flask(__name__)
+app.config.from_object('config')
 
 
 def google_auth(f):
@@ -104,5 +105,4 @@ def oauth2callback():
 
 
 if __name__ == '__main__':
-    app.config.from_object('config')
     app.run()
