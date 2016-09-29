@@ -64,6 +64,7 @@ def blog(blog_id):
         blogId=blog_id,
         orderBy='published',
         status='live',
+        maxResults=50,
         fetchBodies=False
     ).execute())
     return flask.render_template('post_list.html', blog_id=blog_id, posts=posts['items'])
